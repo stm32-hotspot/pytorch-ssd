@@ -1,0 +1,31 @@
+# config.py
+
+optimized_grad = [
+    'model.base_net.5.conv.0.weight', 'model.base_net.6.conv.0.weight',
+    'model.base_net.7.conv.6.weight', 'model.base_net.8.conv.0.weight',
+    'model.base_net.9.conv.0.weight', 'model.base_net.9.conv.6.weight',
+    'model.base_net.10.conv.0.weight', 'model.base_net.11.conv.0.weight',
+    'model.base_net.12.conv.0.weight', 'model.base_net.14.conv.0.weight',
+    'model.base_net.17.conv.3.weight', 'model.extras.0.conv.3.weight',
+    'model.extras.1.conv.0.weight', 'model.extras.1.conv.3.weight',
+    'model.extras.1.conv.6.weight', 'model.extras.2.conv.0.weight',
+    'model.extras.2.conv.3.weight', 'model.extras.2.conv.6.weight',
+    'model.extras.3.conv.0.weight', 'model.extras.3.conv.3.weight',
+    'model.extras.3.conv.6.weight',
+    'model.classification_headers.0.3.weight', 'model.classification_headers.0.3.bias',
+    'model.classification_headers.1.0.weight', 'model.classification_headers.1.0.bias',
+    'model.classification_headers.2.0.weight', 'model.classification_headers.2.0.bias',
+    'model.classification_headers.2.3.weight', 'model.classification_headers.2.3.bias',
+    'model.classification_headers.3.0.weight', 'model.classification_headers.3.0.bias',
+    'model.classification_headers.3.3.weight', 'model.classification_headers.3.3.bias',
+    'model.classification_headers.4.0.weight', 'model.classification_headers.4.0.bias',
+    'model.classification_headers.4.3.weight', 'model.classification_headers.4.3.bias',
+    'model.classification_headers.5.weight', 'model.classification_headers.5.bias',
+    'model.regression_headers.2.0.weight', 'model.regression_headers.2.0.bias',
+    'model.regression_headers.2.3.weight', 'model.regression_headers.2.3.bias',
+    'model.regression_headers.3.0.weight', 'model.regression_headers.3.0.bias',
+    'model.regression_headers.3.3.weight', 'model.regression_headers.3.3.bias',
+    'model.regression_headers.4.0.weight', 'model.regression_headers.4.0.bias',
+    'model.regression_headers.4.3.weight', 'model.regression_headers.4.3.bias',
+    'model.regression_headers.5.weight', 'model.regression_headers.5.bias'
+]

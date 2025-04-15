@@ -4,7 +4,7 @@ import numpy as np
 from typing import List, Tuple
 import torch.nn.functional as F
 
-from ..utils import box_utils
+from ..utils import box_utils, box_utils_numpy
 from collections import namedtuple
 GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
 
@@ -35,8 +35,8 @@ class SSD(nn.Module):
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if is_test:
             self.config = config
-            self.priors = config.priors.to(self.device)
-            
+            self.priors = config.priors.to("cpu")
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         confidences = []
         locations = []
@@ -86,7 +86,7 @@ class SSD(nn.Module):
 
         confidences = torch.cat(confidences, 1)
         locations = torch.cat(locations, 1)
-        
+
         if self.is_test:
             confidences = F.softmax(confidences, dim=2)
             boxes = box_utils.convert_locations_to_boxes(
@@ -155,6 +155,23 @@ class MatchPrior(object):
                                                 self.corner_form_priors, self.iou_threshold)
         boxes = box_utils.corner_form_to_center_form(boxes)
         locations = box_utils.convert_boxes_to_locations(boxes, self.center_form_priors, self.center_variance, self.size_variance)
+        return locations, labels
+
+
+class MatchPriorNumpy(object):
+    def __init__(self, center_form_priors, center_variance, size_variance, iou_threshold):
+        self.center_form_priors = center_form_priors
+        self.corner_form_priors = box_utils_numpy.center_form_to_corner_form(
+            center_form_priors)
+        self.center_variance = center_variance
+        self.size_variance = size_variance
+        self.iou_threshold = iou_threshold
+
+    def __call__(self, gt_boxes, gt_labels):
+        boxes, labels = box_utils_numpy.assign_priors(gt_boxes, gt_labels,
+                                                      self.corner_form_priors, self.iou_threshold)
+        boxes = box_utils_numpy.corner_form_to_center_form(boxes)
+        locations = box_utils_numpy.convert_boxes_to_locations( boxes, self.center_form_priors, self.center_variance, self.size_variance)
         return locations, labels
 
 

@@ -1,9 +1,14 @@
-from .box_utils import SSDSpec
+import collections
 
 from typing import List
 import itertools
 import math
 import numpy as np
+
+SSDBoxSizes = collections.namedtuple('SSDBoxSizes', ['min', 'max'])
+
+SSDSpec = collections.namedtuple(
+    'SSDSpec', ['feature_map_size', 'shrinkage', 'box_sizes', 'aspect_ratios'])
 
 
 def generate_ssd_priors(specs: List[SSDSpec], image_size, clamp=True):
@@ -144,6 +149,49 @@ def iou_of(boxes0, boxes1, eps=1e-5):
     area0 = area_of(boxes0[..., :2], boxes0[..., 2:])
     area1 = area_of(boxes1[..., :2], boxes1[..., 2:])
     return overlap_area / (area0 + area1 - overlap_area + eps)
+
+
+def assign_priors(gt_boxes, gt_labels, corner_form_priors, iou_threshold):
+    """Assign ground truth boxes and targets to priors.
+
+    Args:
+        gt_boxes (num_targets, 4): ground truth boxes.
+        gt_labels (num_targets): labels of targets.
+        corner_form_priors (num_priors, 4): corner form priors
+        iou_threshold: threshold to assign ground truth to a prior.
+
+    Returns:
+        boxes (num_priors, 4): real values for priors.
+        labels (num_priors): labels for priors.
+    """
+    # Calculate the IOU between gt_boxes and corner_form_priors
+    ious = iou_of(np.expand_dims(gt_boxes, axis=0),
+                  np.expand_dims(corner_form_priors, axis=1))
+
+    # Find the best ground truth for each prior
+    best_target_per_prior_index = np.argmax(ious, axis=1)
+    best_target_per_prior = ious[np.arange(
+        ious.shape[0]), best_target_per_prior_index]
+
+    # Find the best prior for each ground truth
+    best_prior_per_target_index = np.argmax(ious, axis=0)
+    best_prior_per_target = ious[best_prior_per_target_index, np.arange(
+        ious.shape[1])]
+
+    # Ensure every ground truth is assigned to at least one prior
+    for target_index, prior_index in enumerate(best_prior_per_target_index):
+        best_target_per_prior_index[prior_index] = target_index
+    # Using 2 to ensure assignment
+    best_target_per_prior[best_prior_per_target_index] = 2.0
+
+    # Set labels for each prior
+    labels = gt_labels[best_target_per_prior_index]
+    labels[best_target_per_prior < iou_threshold] = 0  # Background class
+
+    # Set boxes for each prior
+    boxes = gt_boxes[best_target_per_prior_index]
+
+    return boxes, labels
 
 
 def center_form_to_corner_form(locations):

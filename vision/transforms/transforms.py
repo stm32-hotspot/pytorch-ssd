@@ -2,7 +2,6 @@
 
 
 import torch
-from torchvision import transforms
 import cv2
 import numpy as np
 import types
@@ -213,6 +212,14 @@ class ToTensor(object):
     def __call__(self, cvimage, boxes=None, labels=None):
         return torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1), boxes, labels
 
+class ToFloatAndTranspose(object):
+    def __call__(self, cvimage, boxes=None, labels=None):
+        # Convert the image to a numpy array of type float32
+        numpy_image = cvimage.astype(np.float32)
+        # Permute the axes to have the channel dimension first (C, H, W)
+        numpy_image = np.transpose(numpy_image, (2, 0, 1))
+        return numpy_image, boxes, labels
+
 
 class RandomSampleCrop(object):
     """Crop
@@ -244,7 +251,8 @@ class RandomSampleCrop(object):
         height, width, _ = image.shape
         while True:
             # randomly choose a mode
-            mode = random.choice(self.sample_options)
+            # mode = random.choice(self.sample_options)
+            mode = None
             if mode is None:
                 return image, boxes, labels
 

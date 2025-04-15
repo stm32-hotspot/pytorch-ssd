@@ -20,7 +20,7 @@ class TrainAugmentation:
             Resize(self.size),
             SubtractMeans(self.mean),
             lambda img, boxes=None, labels=None: (img / std, boxes, labels),
-            ToTensor(),
+            ToFloatAndTranspose(),
         ])
 
     def __call__(self, img, boxes, labels):
@@ -41,7 +41,7 @@ class TestTransform:
             Resize(size),
             SubtractMeans(mean),
             lambda img, boxes=None, labels=None: (img / std, boxes, labels),
-            ToTensor(),
+            ToFloatAndTranspose(),
         ])
 
     def __call__(self, image, boxes, labels):
@@ -54,7 +54,7 @@ class PredictionTransform:
             Resize(size),
             SubtractMeans(mean),
             lambda img, boxes=None, labels=None: (img / std, boxes, labels),
-            ToTensor()
+            ToFloatAndTranspose()
         ])
 
     def __call__(self, image):

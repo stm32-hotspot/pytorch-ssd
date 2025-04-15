@@ -3,7 +3,7 @@
 This repo implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325). The implementation is heavily influenced by the projects [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) and [Detectron](https://github.com/facebookresearch/Detectron).
 The design goal is modularity and extensibility.
 
-Currently, it has MobileNetV1, MobileNetV2, and VGG based SSD/SSD-Lite implementations. 
+Currently, it has MobileNetV1, MobileNetV2, and VGG based SSD/SSD-Lite implementations.
 
 It also has out-of-box support for retraining on Google Open Images dataset.
 
@@ -26,13 +26,13 @@ It also has out-of-box support for retraining on Google Open Images dataset.
 
 ```bash
 # If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
-python run_ssd_live_demo.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+python run_ssd_live_demo.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt
 ```
 ### Run the live demo in Caffe2
 
 ```bash
 # If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
-python run_ssd_live_caffe2.py models/mobilenet-v1-ssd_init_net.pb models/mobilenet-v1-ssd_predict_net.pb models/voc-model-labels.txt 
+python run_ssd_live_caffe2.py models/mobilenet-v1-ssd_init_net.pb models/mobilenet-v1-ssd_predict_net.pb models/voc-model-labels.txt
 ```
 
 You can see a decent speed boost by using Caffe2.
@@ -41,7 +41,7 @@ You can see a decent speed boost by using Caffe2.
 
 ```bash
 # If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
-python run_ssd_live_demo.py mb2-ssd-lite models/mb2-ssd-lite-mp-0_686.pth models/voc-model-labels.txt 
+python run_ssd_live_demo.py mb2-ssd-lite models/mb2-ssd-lite-mp-0_686.pth models/voc-model-labels.txt
 ```
 
 The above MobileNetV2 SSD-Lite model is not ONNX-Compatible, as it uses Relu6 which is not supported by ONNX.
@@ -171,13 +171,13 @@ The dataset path is the parent directory of the folders: Annotations, ImageSets,
 ## Evaluation
 
 ```bash
-python eval_ssd.py --net mb1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt 
+python eval_ssd.py --net mb1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt
 ```
 
 ## Convert models to ONNX and Caffe2 models
 
 ```bash
-python convert_to_caffe2_models.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+python convert_to_caffe2_models.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt
 ```
 
 The converted models are models/mobilenet-v1-ssd.onnx, models/mobilenet-v1-ssd_init_net.pb and models/mobilenet-v1-ssd_predict_net.pb. The models in the format of pbtxt are also saved for reference.
@@ -214,7 +214,7 @@ sub-train-annotations-bbox.csv       train
 sub-validation-annotations-bbox.csv  train-annotations-bbox.csv
 ```
 
-The folders train, test, validation contain the images. The files like sub-train-annotations-bbox.csv 
+The folders train, test, validation contain the images. The files like sub-train-annotations-bbox.csv
 is the annotation file.
 
 ### Retrain
@@ -223,14 +223,14 @@ is the annotation file.
 python train_ssd.py --dataset_type open_images --datasets ~/data/open_images --net mb1-ssd --pretrained_ssd models/mobilenet-v1-ssd-mp-0_675.pth --scheduler cosine --lr 0.01 --t_max 100 --validation_epochs 5 --num_epochs 100 --base_net_lr 0.001  --batch_size 5
 ```
 
-You can freeze the base net, or all the layers except the prediction heads. 
+You can freeze the base net, or all the layers except the prediction heads.
 
 ```
   --freeze_base_net     Freeze base net layers.
   --freeze_net          Freeze all the layers except the prediction head.
 ```
 
-You can also use different learning rates 
+You can also use different learning rates
 for the base net, the extra layers and the prediction heads.
 
 ```
@@ -274,6 +274,28 @@ python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ -
 ```bash
 python eval_ssd.py --net vgg16-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model models/vgg16-ssd-Epoch-115-Loss-2.819455094383535.pth --label_file models/voc-model-labels.txt
 ```
+
+## ONNX MobileNetV2 SSD-Lite for On-device Learning
+
+The purpose of this paragraph is to provide scripts for the offline phase of ONNX Runtime [on-device training](https://onnxruntime.ai/docs/get-started/training-on-device.html) process, i.e. generate the training artifacts required for training using ORT. For models with complex loss function such as the **MobileNetV2 SSD-Lite** the workaround is to support the loss function in the initial forward graph as a PyTorch model before exporting it to ONNX. Then comes the generation of the training artifacts. To that end, two main functionalities are supported.
+
+### Export the model to ONNX format with Loss function:
+The first step consists of exporting a torch SSD model including the loss function (the forward method returns the loss + the outputs). To create the forward graph with the loss function integrated, you need to run the following script. You should be able to generate a forward model with regular outputs and loss outputs in the graph as an ONNX model.
+
+```bash
+python3 export_ssd_to_onnx.py --weights_path models/mb2-imagenet-71_8.pth --nb_classes 2 --img_size 300 --output_model_name    ssd_mobilenetv2_with_loss --onnx_opset 17
+```
+
+It is required to generate the SSD model anchors in order to determine the output shape of the model. To be able to retrain the model graph in ONNXRuntime, the training argument in the export function should be set to **torch.onnx.TrainingMode.TRAINING**. For ``onnxruntime-training 1.19.``2 the opset version should be higher than **17**.
+
+### Generate the training artifacts:
+After exporting the model containing the loss outputs in the graph to the **ONNX**format, we are set to generate the training artifacts which will be used as training graphs for the training on-device phase. For that, please run the following script:
+
+```bash
+python3 generate_artifacts.py ./ssd_mobilenetv2_with_loss.onnx ./training_artifacts --freeze_optimized
+```
+You should notice the generation of 4 ONNX files inside the ``training_artifacts`` directory. The 4 files are respectively the **training graph** to compute the gradients, the **optimizer graph** to update the model parameters based on the computed gradients and finally the **evaluation graph** on the evaluation dataset to compute the validation loss. The **checkpoints** file contains the essential training state such as trainable and non-trainable parameters.
+
 
 ## TODO
 

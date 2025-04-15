@@ -8,7 +8,7 @@ from ..utils import box_utils
 
 class MultiboxLoss(nn.Module):
     def __init__(self, priors, iou_threshold, neg_pos_ratio,
-                 center_variance, size_variance, device):
+                 center_variance, size_variance, device, export_to_onnx: bool):
         """Implement SSD Multibox Loss.
 
         Basically, Multibox loss combines classification loss
@@ -21,6 +21,7 @@ class MultiboxLoss(nn.Module):
         self.size_variance = size_variance
         self.priors = priors
         self.priors.to(device)
+        self.export_to_onnx = export_to_onnx
 
     def forward(self, confidence, predicted_locations, labels, gt_locations):
         """Compute classification loss and smooth l1 loss.
@@ -38,10 +39,18 @@ class MultiboxLoss(nn.Module):
             mask = box_utils.hard_negative_mining(loss, labels, self.neg_pos_ratio)
 
         confidence = confidence[mask, :]
+        # To avoid shape inference error (for SoftmaxCrossEntropy onnx operator, labels can't be float)
+        # cf https://onnx.ai/onnx/operators/onnx__SoftmaxCrossEntropyLoss.html
+        if self.export_to_onnx:
+            labels = labels.to(torch.int32)
+
         classification_loss = F.cross_entropy(confidence.reshape(-1, num_classes), labels[mask], size_average=False)
         pos_mask = labels > 0
         predicted_locations = predicted_locations[pos_mask, :].reshape(-1, 4)
         gt_locations = gt_locations[pos_mask, :].reshape(-1, 4)
-        smooth_l1_loss = F.smooth_l1_loss(predicted_locations, gt_locations, size_average=False)
+
+        # Smooth_l1_loss not supported in onnx: replace by mse loss
+        """ smooth_l1_loss = F.smooth_l1_loss(predicted_locations, gt_locations, size_average=False) """
+        mse_loss = F.mse_loss(predicted_locations, gt_locations, size_average=False)
         num_pos = gt_locations.size(0)
-        return smooth_l1_loss/num_pos, classification_loss/num_pos
+        return mse_loss/num_pos, classification_loss/num_pos
